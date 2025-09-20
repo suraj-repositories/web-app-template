@@ -54,33 +54,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // File chooser for uploads
-        fileChooserLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    if (uploadMessage == null) return;
-
-                    Uri[] results = null;
-                    if (result.getResultCode() == Activity.RESULT_OK) {
-                        Intent data = result.getData();
-                        if (data != null) {
-                            // Handle multiple selection
-                            if (data.getClipData() != null) {
-                                int count = data.getClipData().getItemCount();
-                                results = new Uri[count];
-                                for (int i = 0; i < count; i++) {
-                                    results[i] = data.getClipData().getItemAt(i).getUri();
-                                }
-                            } else if (data.getData() != null) {
-                                results = new Uri[]{data.getData()};
-                            }
-                        }
-                    }
-                    uploadMessage.onReceiveValue(results);
-                    uploadMessage = null; // reset after use
-                }
-        );
-
         // Permission launcher
         requestPermissionLauncher = registerForActivityResult(
                 new ActivityResultContracts.RequestMultiplePermissions(),
@@ -165,4 +138,33 @@ public class MainActivity extends AppCompatActivity {
             // Handle portrait if needed
         }
     }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == AppConfig.FILE_CHOOSER_REQUEST_CODE) {
+            Uri[] results = null;
+
+            if (resultCode == Activity.RESULT_OK) {
+                if (data != null) {
+                    if (data.getClipData() != null) {
+                        int count = data.getClipData().getItemCount();
+                        results = new Uri[count];
+                        for (int i = 0; i < count; i++) {
+                            results[i] = data.getClipData().getItemAt(i).getUri();
+                        }
+                    } else if (data.getData() != null) {
+                        results = new Uri[]{data.getData()};
+                    }
+                }
+            }
+
+            if (uploadMessage != null) {
+                uploadMessage.onReceiveValue(results);
+                uploadMessage = null;
+            }
+        }
+    }
+
 }

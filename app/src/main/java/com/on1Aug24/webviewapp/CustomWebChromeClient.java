@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.net.Uri;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.ValueCallback;
@@ -18,6 +19,10 @@ import androidx.activity.result.ActivityResultLauncher;
 
 import com.on1Aug24.webviewapp.constants.AppConfig;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 public class CustomWebChromeClient extends WebChromeClient {
 
     private MainActivity mainActivity;
@@ -29,7 +34,6 @@ public class CustomWebChromeClient extends WebChromeClient {
     private ActivityResultLauncher<Intent> fileChooserLauncher;
     private FrameLayout mContentView;
 
-    private ValueCallback<Uri[]> uploadMessage;
 
     public CustomWebChromeClient(MainActivity mainActivity,
                                  ActivityResultLauncher<Intent> fileChooserLauncher,
@@ -88,25 +92,38 @@ public class CustomWebChromeClient extends WebChromeClient {
     public boolean onShowFileChooser(WebView webView,
                                      ValueCallback<Uri[]> filePathCallback,
                                      FileChooserParams fileChooserParams) {
-        // Reset previous callback if not handled
-        if (uploadMessage != null) {
-            uploadMessage.onReceiveValue(null);
-            uploadMessage = null;
-        }
-
-        uploadMessage = filePathCallback;
-        mainActivity.setUploadMessage(uploadMessage); // give MainActivity reference
-
-        Intent intent = fileChooserParams.createIntent();
-        intent.setType(AppConfig.UPLOAD_FILE_SUPPORT);
-
         try {
-            fileChooserLauncher.launch(intent);
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("*/*");
+            String[] acceptTypes = fileChooserParams.getAcceptTypes();
+            if (acceptTypes != null) {
+                List<String> validTypes = new ArrayList<>();
+                for (String type : acceptTypes) {
+                    if (type != null && !type.trim().isEmpty()) {
+                        validTypes.add(type);
+                    }
+                }
+                if (!validTypes.isEmpty()) {
+                    intent.putExtra(Intent.EXTRA_MIME_TYPES, validTypes.toArray(new String[0]));
+                } else {
+                    intent.setType("*/*");
+                }
+            }
+
+
+            boolean allowMultiple = fileChooserParams.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE;
+            intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, allowMultiple);
+
+            Intent chooserIntent = Intent.createChooser(intent, "Choose File");
+            ((Activity) webView.getContext()).startActivityForResult(chooserIntent, AppConfig.FILE_CHOOSER_REQUEST_CODE);
+
+            mainActivity.setUploadMessage(filePathCallback);
+            return true;
         } catch (ActivityNotFoundException e) {
-            uploadMessage = null;
-            Toast.makeText(mainActivity, "Cannot open file chooser", Toast.LENGTH_LONG).show();
+            Toast.makeText(webView.getContext(), "No file picker installed!", Toast.LENGTH_LONG).show();
             return false;
         }
-        return true;
     }
+
 }
