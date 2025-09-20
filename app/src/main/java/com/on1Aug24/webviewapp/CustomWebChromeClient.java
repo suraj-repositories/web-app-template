@@ -95,7 +95,7 @@ public class CustomWebChromeClient extends WebChromeClient {
         try {
             Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
             intent.addCategory(Intent.CATEGORY_OPENABLE);
-            intent.setType("*/*");
+            intent.setType(AppConfig.UPLOAD_FILE_SUPPORT);
             String[] acceptTypes = fileChooserParams.getAcceptTypes();
             if (acceptTypes != null) {
                 List<String> validTypes = new ArrayList<>();
@@ -107,7 +107,7 @@ public class CustomWebChromeClient extends WebChromeClient {
                 if (!validTypes.isEmpty()) {
                     intent.putExtra(Intent.EXTRA_MIME_TYPES, validTypes.toArray(new String[0]));
                 } else {
-                    intent.setType("*/*");
+                    intent.setType(AppConfig.UPLOAD_FILE_SUPPORT);
                 }
             }
 

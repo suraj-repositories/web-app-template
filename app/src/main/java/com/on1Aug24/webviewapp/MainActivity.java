@@ -4,12 +4,22 @@ import static android.os.Build.VERSION.SDK_INT;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.DownloadManager;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
+import android.webkit.CookieManager;
+import android.webkit.DownloadListener;
+import android.webkit.URLUtil;
 import android.webkit.ValueCallback;
 import android.webkit.WebView;
 
@@ -19,6 +29,8 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.webkit.WebSettings;
@@ -29,7 +41,7 @@ import com.on1Aug24.webviewapp.constants.AppConfig;
 
 public class MainActivity extends AppCompatActivity {
 
-    private WebView webView;
+    protected WebView webView;
     private SwipeRefreshLayout swipeRefreshLayout;
     private ValueCallback<Uri[]> uploadMessage;
     private ActivityResultLauncher<Intent> fileChooserLauncher;
@@ -90,6 +102,22 @@ public class MainActivity extends AppCompatActivity {
         requestPermissionLauncher.launch(permissions);
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 101) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Permission granted
+            } else {
+                // Permission denied
+                Toast.makeText(this, "Notifications permission denied", Toast.LENGTH_SHORT).show();
+                AppConfig.USE_CUSTOM_NOTIFICATION = false;
+            }
+        }
+    }
+
+
+
     private void setupWebView() {
         webView = findViewById(R.id.webView);
         WebSettings webSettings = webView.getSettings();
@@ -103,11 +131,56 @@ public class MainActivity extends AppCompatActivity {
         webSettings.setAllowFileAccessFromFileURLs(true);
         webSettings.setAllowUniversalAccessFromFileURLs(true);
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
+        } else {
+            CookieManager.getInstance().setAcceptCookie(true);
+        }
+
         webView.setClickable(true);
         webView.setWebViewClient(new CustomWebViewClient(swipeRefreshLayout));
         webView.setWebChromeClient(new CustomWebChromeClient(this, fileChooserLauncher, mContentView));
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 101);
+            }
+        }
+
         webView.setDownloadListener(new CustomDownloadListener(this, getApplicationContext()));
+
+
+//        webView.setDownloadListener(new DownloadListener() {
+//            @Override
+//            public void onDownloadStart(String url, String userAgent,
+//                                        String contentDisposition, String mimeType,
+//                                        long contentLength) {
+//
+//                String fileName = URLUtil.guessFileName(url, contentDisposition, mimeType);
+//                DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
+//                request.setMimeType(mimeType);
+//
+//                String cookies = CookieManager.getInstance().getCookie(url);
+//                if (cookies != null) request.addRequestHeader("cookie", cookies);
+//                request.addRequestHeader("User-Agent", userAgent);
+//
+//                request.setTitle(fileName);
+//                request.setDescription("Downloading...");
+//                request.allowScanningByMediaScanner();
+//                request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+//                request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName);
+//
+//                DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+//                dm.enqueue(request);
+//
+//                Toast.makeText(getApplicationContext(), "Downloading File", Toast.LENGTH_SHORT).show();
+//                Log.i("DownloadDebug", "Download started for: " + fileName);
+//            }
+//        });
+
+
         webView.loadUrl(AppConfig.WEB_URL);
 
         OnBackPressedCallback callback = new OnBackPressedCallback(true) {
@@ -166,5 +239,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+
+
 
 }

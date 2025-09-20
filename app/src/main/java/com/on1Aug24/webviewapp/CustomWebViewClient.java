@@ -1,8 +1,10 @@
 package com.on1Aug24.webviewapp;
 
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.http.SslError;
 import android.os.Build;
+import android.util.Log;
 import android.webkit.SslErrorHandler;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
@@ -57,4 +59,7 @@ public class CustomWebViewClient extends WebViewClient {
         swipeRefreshLayout.setRefreshing(false); // Stop the spinner when the page is fully loaded
         MainActivity.currentUrl = url;
     }
+
+
+
 }
