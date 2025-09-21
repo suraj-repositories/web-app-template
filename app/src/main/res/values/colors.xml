@@ -5,4 +5,10 @@
 
     <color name="dark_night">#DDDDDD</color>
     <color name="white_night">#373737</color>
+
+    <color name="startup_bg_color">#FFFFFF</color>
+
+    <color name="progress_color">#FF1F1F</color>
+    <color name="progress_background">#828282</color>
+
 </resources>

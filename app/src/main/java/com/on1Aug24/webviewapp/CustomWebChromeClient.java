@@ -6,18 +6,20 @@ import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.net.Uri;
-import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.MimeTypeMap;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.widget.FrameLayout;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 
 import com.on1Aug24.webviewapp.constants.AppConfig;
+import com.on1Aug24.webviewapp.enums.ProgressBarStyle;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,7 +35,9 @@ public class CustomWebChromeClient extends WebChromeClient {
     private int mOriginalSystemUiVisibility;
     private ActivityResultLauncher<Intent> fileChooserLauncher;
     private FrameLayout mContentView;
+    private ProgressBar progressBarTop;
 
+    private FrameLayout startupScreen;
 
     public CustomWebChromeClient(MainActivity mainActivity,
                                  ActivityResultLauncher<Intent> fileChooserLauncher,
@@ -42,6 +46,8 @@ public class CustomWebChromeClient extends WebChromeClient {
         this.mainActivity = mainActivity;
         this.fileChooserLauncher = fileChooserLauncher;
         this.mContentView = mContentView;
+        this.progressBarTop = mainActivity.findViewById(R.id.progressBarTop);
+        this.startupScreen = mainActivity.startupScreen;
     }
 
     @Override
@@ -97,16 +103,25 @@ public class CustomWebChromeClient extends WebChromeClient {
             intent.addCategory(Intent.CATEGORY_OPENABLE);
             intent.setType(AppConfig.UPLOAD_FILE_SUPPORT);
             String[] acceptTypes = fileChooserParams.getAcceptTypes();
-            if (acceptTypes != null) {
-                List<String> validTypes = new ArrayList<>();
+
+            if (acceptTypes != null && acceptTypes.length > 0) {
+                List<String> mimeTypes = new ArrayList<>();
                 for (String type : acceptTypes) {
-                    if (type != null && !type.trim().isEmpty()) {
-                        validTypes.add(type);
+                    if (type == null || type.trim().isEmpty()) continue;
+
+                    type = type.trim().toLowerCase();
+
+                    if (type.startsWith(".")) {
+                        String ext = type.replace(".", "");
+                        String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
+                        mimeTypes.add(mime != null ? mime : "*/*");
+                    } else if (type.contains("/")) {
+                        mimeTypes.add(type);
                     }
                 }
-                if (!validTypes.isEmpty()) {
-                    intent.putExtra(Intent.EXTRA_MIME_TYPES, validTypes.toArray(new String[0]));
-                } else {
+
+                if (!mimeTypes.isEmpty()) {
+                    intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes.toArray(new String[0]));
                     intent.setType(AppConfig.UPLOAD_FILE_SUPPORT);
                 }
             }
@@ -123,6 +138,25 @@ public class CustomWebChromeClient extends WebChromeClient {
         } catch (ActivityNotFoundException e) {
             Toast.makeText(webView.getContext(), "No file picker installed!", Toast.LENGTH_LONG).show();
             return false;
+        }
+    }
+
+    @Override
+    public void onProgressChanged(WebView view, int newProgress) {
+
+        if(AppConfig.LOADER_STYLE == ProgressBarStyle.TOP_BAR){
+            if (newProgress < 100) {
+                progressBarTop.setVisibility(View.VISIBLE);
+                progressBarTop.setProgress(newProgress);
+            } else {
+                progressBarTop.setVisibility(View.GONE);
+
+
+            }
+        }
+
+        if(newProgress >= 100 && startupScreen.getVisibility() == View.VISIBLE){
+            startupScreen.setVisibility(View.GONE);
         }
     }
 

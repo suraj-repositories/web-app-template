@@ -17,6 +17,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
+import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.DownloadListener;
 import android.webkit.URLUtil;
@@ -35,6 +36,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.webkit.WebSettings;
 import android.widget.FrameLayout;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.on1Aug24.webviewapp.constants.AppConfig;
@@ -49,13 +51,19 @@ public class MainActivity extends AppCompatActivity {
     private FrameLayout mContentView;
     public static String currentUrl;
 
+    public FrameLayout startupScreen;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mContentView = findViewById(R.id.activity_main);
         swipeRefreshLayout = findViewById(R.id.swipe_refresh_layout);
+        startupScreen = findViewById(R.id.startup_screen);
+        startupScreen.setVisibility(View.VISIBLE);
+
         currentUrl = AppConfig.WEB_URL;
+
 
         // Pull-to-refresh
         swipeRefreshLayout.setOnRefreshListener(() -> {
@@ -138,7 +146,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         webView.setClickable(true);
-        webView.setWebViewClient(new CustomWebViewClient(swipeRefreshLayout));
+        webView.setWebViewClient(new CustomWebViewClient(this, swipeRefreshLayout));
         webView.setWebChromeClient(new CustomWebChromeClient(this, fileChooserLauncher, mContentView));
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -150,37 +158,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
         webView.setDownloadListener(new CustomDownloadListener(this, getApplicationContext()));
-
-
-//        webView.setDownloadListener(new DownloadListener() {
-//            @Override
-//            public void onDownloadStart(String url, String userAgent,
-//                                        String contentDisposition, String mimeType,
-//                                        long contentLength) {
-//
-//                String fileName = URLUtil.guessFileName(url, contentDisposition, mimeType);
-//                DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
-//                request.setMimeType(mimeType);
-//
-//                String cookies = CookieManager.getInstance().getCookie(url);
-//                if (cookies != null) request.addRequestHeader("cookie", cookies);
-//                request.addRequestHeader("User-Agent", userAgent);
-//
-//                request.setTitle(fileName);
-//                request.setDescription("Downloading...");
-//                request.allowScanningByMediaScanner();
-//                request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-//                request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName);
-//
-//                DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-//                dm.enqueue(request);
-//
-//                Toast.makeText(getApplicationContext(), "Downloading File", Toast.LENGTH_SHORT).show();
-//                Log.i("DownloadDebug", "Download started for: " + fileName);
-//            }
-//        });
-
-
         webView.loadUrl(AppConfig.WEB_URL);
 
         OnBackPressedCallback callback = new OnBackPressedCallback(true) {
